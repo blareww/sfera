@@ -1,0 +1,9 @@
+/public_html/config/local.php
+/public_html/config/.installing
+/public_html/config/.sfera-config-*
+/public_html/config/install.lock
+/sfera-vault*/
+/.env
+*.sql.gz
+*.log
+/sfera-install-token.txt
