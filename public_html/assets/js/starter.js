@@ -2,6 +2,14 @@ const status = document.querySelector('#status');
 const login = document.querySelector('#login');
 const home = document.querySelector('#home');
 const logout = document.querySelector('#logout');
+const emptyFeed = document.querySelector('#empty-feed');
+const openComposer = document.querySelector('#open-composer');
+const closeComposer = document.querySelector('#close-composer');
+const composer = document.querySelector('#composer');
+const postText = document.querySelector('#post-text');
+const previewButton = document.querySelector('#preview-button');
+const postPreview = document.querySelector('#post-preview');
+const previewText = document.querySelector('#preview-text');
 let csrf;
 
 async function request(route, payload) {
@@ -26,6 +34,13 @@ function show(user) {
     document.querySelector('#greeting').textContent = user ? 'Вы вошли как ' + user.display_name + '.' : '';
     login.hidden = Boolean(user);
     home.hidden = !user;
+    if (!user) {
+        composer.reset();
+        previewButton.disabled = true;
+        postPreview.hidden = true;
+        previewText.textContent = '';
+        showComposer(false);
+    }
     status.textContent = '';
 }
 
@@ -52,11 +67,42 @@ logout.addEventListener('click', async () => {
     logout.disabled = true;
     try {
         await request('logout', {});
+        show(null);
         await refresh();
     } catch (error) {
         showError(error);
     } finally {
         logout.disabled = false;
+    }
+});
+
+function showComposer(open) {
+    emptyFeed.hidden = open;
+    composer.hidden = !open;
+}
+
+openComposer.addEventListener('click', () => {
+    showComposer(true);
+    postText.focus();
+});
+
+closeComposer.addEventListener('click', () => {
+    showComposer(false);
+    openComposer.focus();
+});
+
+postText.addEventListener('input', () => {
+    previewButton.disabled = !postText.value.trim();
+    postPreview.hidden = true;
+    previewText.textContent = '';
+});
+
+composer.addEventListener('submit', event => {
+    event.preventDefault();
+    const text = postText.value.trim();
+    if (text) {
+        postPreview.hidden = false;
+        previewText.textContent = text;
     }
 });
 
