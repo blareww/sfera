@@ -5,3 +5,25 @@ input { box-sizing: border-box; display: block; width: 100%; padding: .6rem; mar
 button { padding: .6rem 1rem; font: inherit; cursor: pointer; }
 [hidden] { display: none !important; }
 @media (max-width: 40rem) { main { margin: 1rem; padding: 1.25rem; } }
+
+.feed { margin-top: 1.5rem; }
+.empty-feed, .composer { padding: 1rem; border: 1px solid #dce2ef; border-radius: .75rem; background: #f7f9fc; }
+.empty-feed-title { margin-top: 0; font-weight: 700; }
+.composer h3 { margin-top: 0; }
+.composer label { margin-bottom: .4rem; }
+.composer textarea {
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    padding: .6rem;
+    border: 1px solid #8791a5;
+    border-radius: .4rem;
+    resize: vertical;
+    font: inherit;
+}
+.composer-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.primary-button { border: 1px solid #2345a4; border-radius: .4rem; background: #2345a4; color: white; }
+.primary-button:disabled { opacity: .65; cursor: default; }
+.post-preview { margin-top: 1rem; padding: .75rem; background: white; border-radius: .4rem; }
+.post-preview h4 { margin: 0 0 .5rem; }
+.post-preview p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

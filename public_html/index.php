@@ -29,6 +29,28 @@ require __DIR__ . '/app/bootstrap.php';
         <h2>Главная</h2>
         <p id="greeting"></p>
         <button id="logout" type="button">Выйти</button>
+        <section class="feed" aria-labelledby="feed-title">
+            <h2 id="feed-title">Лента</h2>
+            <div id="empty-feed" class="empty-feed">
+                <p class="empty-feed-title">Публикаций пока нет</p>
+                <p>Начните с первой записи.</p>
+                <button id="open-composer" class="primary-button" type="button">Создать публикацию</button>
+            </div>
+            <form id="composer" class="composer" aria-labelledby="composer-title" hidden>
+                <h3 id="composer-title">Новая публикация</h3>
+                <label for="post-text">Текст публикации</label>
+                <textarea id="post-text" rows="5" maxlength="2000" aria-describedby="composer-hint" required></textarea>
+                <p id="composer-hint">На этом этапе запись можно только посмотреть. Она не сохраняется.</p>
+                <div class="composer-actions">
+                    <button id="preview-button" class="primary-button" type="submit" disabled>Предпросмотр</button>
+                    <button id="close-composer" type="button">Назад к ленте</button>
+                </div>
+                <div id="post-preview" class="post-preview" role="status" hidden>
+                    <h4>Предпросмотр публикации</h4>
+                    <p id="preview-text"></p>
+                </div>
+            </form>
+        </section>
     </section>
     <noscript>Для входа включите JavaScript.</noscript>
 </main>
