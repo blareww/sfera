@@ -1,0 +1,174 @@
+CREATE TABLE users (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ username VARCHAR(32) NOT NULL UNIQUE,
+ email VARCHAR(254) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ display_name VARCHAR(80) NOT NULL,
+ role ENUM('user','moderator','admin') NOT NULL DEFAULT 'user',
+ verified TINYINT(1) NOT NULL DEFAULT 0,
+ banned_at DATETIME NULL,
+ session_version INT UNSIGNED NOT NULL DEFAULT 1,
+ last_activity DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ INDEX users_name (display_name), INDEX users_activity (last_activity)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE profiles (
+ user_id BIGINT UNSIGNED PRIMARY KEY,
+ bio VARCHAR(1000) NOT NULL DEFAULT '', city VARCHAR(100) NOT NULL DEFAULT '', birthday DATE NULL,
+ avatar_id BIGINT UNSIGNED NULL, cover_id BIGINT UNSIGNED NULL,
+ profile_visibility ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ birthday_visibility ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ city_visibility ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ friends_visibility ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ posts_visibility ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ media_visibility ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ messages_from ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ requests_from ENUM('all','me') NOT NULL DEFAULT 'all',
+ show_online TINYINT(1) NOT NULL DEFAULT 1, show_typing TINYINT(1) NOT NULL DEFAULT 1,
+ notify_likes TINYINT(1) NOT NULL DEFAULT 1, notify_comments TINYINT(1) NOT NULL DEFAULT 1,
+ notify_friends TINYINT(1) NOT NULL DEFAULT 1, notify_mentions TINYINT(1) NOT NULL DEFAULT 1,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE profile_custom_fields (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, user_id BIGINT UNSIGNED NOT NULL,
+ label VARCHAR(40) NOT NULL, value VARCHAR(200) NOT NULL, position TINYINT UNSIGNED NOT NULL,
+ UNIQUE KEY field_position(user_id,position), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE friendships (
+ user_low BIGINT UNSIGNED NOT NULL, user_high BIGINT UNSIGNED NOT NULL,
+ requester_id BIGINT UNSIGNED NOT NULL, status ENUM('pending','accepted') NOT NULL DEFAULT 'pending',
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY(user_low,user_high), INDEX friend_high(user_high,status),
+ FOREIGN KEY(user_low) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_high) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(requester_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE blocks (
+ user_id BIGINT UNSIGNED NOT NULL, blocked_id BIGINT UNSIGNED NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,blocked_id), INDEX blocked_target(blocked_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY(blocked_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE posts (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, user_id BIGINT UNSIGNED NOT NULL,
+ body TEXT NOT NULL, visibility ENUM('all','friends','me') NOT NULL DEFAULT 'friends',
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ deleted_at DATETIME NULL, INDEX post_owner(user_id,id), INDEX post_feed(deleted_at,id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE comments (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, post_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL,
+ parent_id BIGINT UNSIGNED NULL, body TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, deleted_at DATETIME NULL,
+ INDEX comment_post(post_id,id), FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(parent_id) REFERENCES comments(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE media (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, user_id BIGINT UNSIGNED NOT NULL,
+ file_key CHAR(64) NOT NULL UNIQUE, mime VARCHAR(30) NOT NULL, bytes INT UNSIGNED NOT NULL,
+ width SMALLINT UNSIGNED NOT NULL, height SMALLINT UNSIGNED NOT NULL,
+ context ENUM('draft','post','comment','avatar','cover','site_logo','site_favicon') NOT NULL DEFAULT 'draft',
+ target_id BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX media_owner(user_id,context), INDEX media_target(context,target_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE post_media (
+ post_id BIGINT UNSIGNED NOT NULL, media_id BIGINT UNSIGNED NOT NULL UNIQUE, position TINYINT UNSIGNED NOT NULL,
+ PRIMARY KEY(post_id,media_id), FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE,
+ FOREIGN KEY(media_id) REFERENCES media(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE comment_media (
+ comment_id BIGINT UNSIGNED NOT NULL, media_id BIGINT UNSIGNED NOT NULL UNIQUE, position TINYINT UNSIGNED NOT NULL,
+ PRIMARY KEY(comment_id,media_id), FOREIGN KEY(comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+ FOREIGN KEY(media_id) REFERENCES media(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE post_likes (
+ post_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(post_id,user_id), FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE post_views (
+ post_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(post_id,user_id), FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE hidden_posts (
+ post_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY(post_id,user_id),
+ FOREIGN KEY(post_id) REFERENCES posts(id) ON DELETE CASCADE, FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE conversations (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE conversation_members (
+ conversation_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL,
+ PRIMARY KEY(conversation_id,user_id), FOREIGN KEY(conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE messages (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, conversation_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL,
+ ciphertext MEDIUMBLOB NOT NULL, protocol_version VARCHAR(40) NOT NULL, reply_to_id BIGINT UNSIGNED NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ deleted_at DATETIME NULL, INDEX messages_conversation(conversation_id,id),
+ FOREIGN KEY(conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(reply_to_id) REFERENCES messages(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE message_media (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, message_id BIGINT UNSIGNED NOT NULL,
+ file_key CHAR(64) NOT NULL UNIQUE, bytes INT UNSIGNED NOT NULL,
+ FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE message_receipts (
+ message_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, read_at DATETIME NOT NULL,
+ PRIMARY KEY(message_id,user_id), FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE message_user_state (
+ message_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, deleted_at DATETIME NOT NULL,
+ PRIMARY KEY(message_id,user_id), FOREIGN KEY(message_id) REFERENCES messages(id) ON DELETE CASCADE,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE typing_status (
+ conversation_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, typing_updated_at DATETIME NOT NULL,
+ PRIMARY KEY(conversation_id,user_id), FOREIGN KEY(conversation_id,user_id) REFERENCES conversation_members(conversation_id,user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE notifications (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, user_id BIGINT UNSIGNED NOT NULL, actor_id BIGINT UNSIGNED NULL,
+ kind ENUM('friend_request','friend_accept','like','comment','reply','mention','system') NOT NULL,
+ target_type ENUM('post','comment','user') NOT NULL, target_id BIGINT UNSIGNED NOT NULL,
+ dedupe_key VARCHAR(120) NULL UNIQUE, read_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX notification_user(user_id,id), FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(actor_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE reports (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, reporter_id BIGINT UNSIGNED NULL,
+ target_type ENUM('post','comment','user') NOT NULL, target_id BIGINT UNSIGNED NOT NULL,
+ reason VARCHAR(1000) NOT NULL, status ENUM('open','resolved','dismissed') NOT NULL DEFAULT 'open',
+ reviewed_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ INDEX report_status(status,id), FOREIGN KEY(reporter_id) REFERENCES users(id) ON DELETE SET NULL,
+ FOREIGN KEY(reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE site_settings (
+ setting_key VARCHAR(60) PRIMARY KEY, setting_value TEXT NOT NULL,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+INSERT INTO site_settings(setting_key,setting_value) VALUES
+ ('name','Sfera'),('version','0.1.0'),('description','Место для общения и ваших историй.'),
+ ('registration','1'),('maintenance','0'),('logo_id',''),('favicon_id','');
+CREATE TABLE admin_audit_log (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, actor_id BIGINT UNSIGNED NULL,
+ action VARCHAR(80) NOT NULL, target_type VARCHAR(30) NOT NULL, target_id BIGINT UNSIGNED NULL,
+ ip_hash CHAR(64) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX audit_created(created_at), FOREIGN KEY(actor_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE login_attempts (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, account_hash CHAR(64) NOT NULL, ip_hash CHAR(64) NOT NULL,
+ success TINYINT(1) NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX login_ip(ip_hash,created_at), INDEX login_account(account_hash,created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE rate_limits (
+ bucket CHAR(64) NOT NULL, window_id BIGINT UNSIGNED NOT NULL, hits INT UNSIGNED NOT NULL,
+ expires_at DATETIME NOT NULL, PRIMARY KEY(bucket,window_id), INDEX rate_expiry(expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

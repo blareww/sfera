@@ -1,0 +1,7 @@
+:root { font-family: system-ui, sans-serif; color: #192238; background: #f4f6fb; }
+main { max-width: 34rem; margin: 8vh auto; padding: 2rem; background: white; border-radius: 1rem; }
+label { display: block; margin-bottom: 1rem; }
+input { box-sizing: border-box; display: block; width: 100%; padding: .6rem; margin-top: .3rem; font: inherit; }
+button { padding: .6rem 1rem; font: inherit; cursor: pointer; }
+[hidden] { display: none !important; }
+@media (max-width: 40rem) { main { margin: 1rem; padding: 1.25rem; } }
