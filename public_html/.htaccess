@@ -1,0 +1,16 @@
+# SpaceWeb HTTPS proxy
+SetEnvIfNoCase X-Forwarded-Proto ^https$ HTTPS=on SERVER_PORT=443
+
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+RewriteEngine On
+RewriteRule ^(?:app|config|database|storage|bin|tests|docs|evidence|artifacts)(?:/|$) - [F,L,NC]
+<FilesMatch "(^\.|\.(sql|log|ini|bak|env|md|json|lock|zip|txt)$)">
+Require all denied
+</FilesMatch>
+
+<IfModule mod_headers.c>
+<FilesMatch "\.(js|css)$">
+Header set Cache-Control "no-cache"
+</FilesMatch>
+</IfModule>
